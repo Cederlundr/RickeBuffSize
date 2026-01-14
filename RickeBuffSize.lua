@@ -18,17 +18,27 @@ f:RegisterEvent("UNIT_AURA")
 
 -- Resize function
 local function ResizeTargetAuras()
-    -- Buffs (all)
+    -- Buffs (ALL buffs forced above everything)
     for i = 1, MAX_TARGET_BUFFS do
         local b = _G["TargetFrameBuff"..i]
-        if b and b:GetWidth() ~= buffSize then
-            b:SetSize(buffSize, buffSize)
+        if b then
+            -- Size
+            if b:GetWidth() ~= buffSize then
+                b:SetSize(buffSize, buffSize)
+            end
+
+            -- Layering (do this once)
+            if not b.__buffRaised then
+                b:SetFrameStrata("HIGH")
+                b:SetFrameLevel(1000)
+                b.__buffRaised = true
+            end
         end
     end
 
-    -- Debuffs
+    -- Debuffs (unchanged behavior)
     for i = 1, MAX_TARGET_DEBUFFS do
-        local name, _, _, _, _, _, caster = UnitAura("target", i, "HARMFUL")
+        local _, _, _, _, _, _, caster = UnitAura("target", i, "HARMFUL")
         local d = _G["TargetFrameDebuff"..i]
         if d then
             if caster == "player" then
@@ -49,7 +59,7 @@ local updateFrame = CreateFrame("Frame")
 local elapsedSinceUpdate = 0
 updateFrame:SetScript("OnUpdate", function(self, elapsed)
     elapsedSinceUpdate = elapsedSinceUpdate + elapsed
-    if elapsedSinceUpdate >= 0.1 then  -- update 10 times per second
+    if elapsedSinceUpdate >= 0.1 then
         ResizeTargetAuras()
         elapsedSinceUpdate = 0
     end
@@ -63,7 +73,6 @@ f:SetScript("OnEvent", function(_, event, arg1)
         debuffSize       = RickeBuffSizeDB.debuffSize or DEFAULT_DEBUFF_SIZE
         playerDebuffSize = RickeBuffSizeDB.playerDebuffSize or DEFAULT_PLAYER_DEBUFF_SIZE
 
-        -- Apply immediately
         ResizeTargetAuras()
         return
     end
