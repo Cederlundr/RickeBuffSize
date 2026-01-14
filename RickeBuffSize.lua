@@ -21,7 +21,7 @@ local function ResizeTargetAuras()
     -- Buffs (all)
     for i = 1, MAX_TARGET_BUFFS do
         local b = _G["TargetFrameBuff"..i]
-        if b then
+        if b and b:GetWidth() ~= buffSize then
             b:SetSize(buffSize, buffSize)
         end
     end
@@ -44,19 +44,24 @@ local function ResizeTargetAuras()
     end
 end
 
--- OnUpdate watcher to immediately fix new debuffs
+-- OnUpdate watcher (optimized)
 local updateFrame = CreateFrame("Frame")
-updateFrame:SetScript("OnUpdate", function()
-    ResizeTargetAuras()
+local elapsedSinceUpdate = 0
+updateFrame:SetScript("OnUpdate", function(self, elapsed)
+    elapsedSinceUpdate = elapsedSinceUpdate + elapsed
+    if elapsedSinceUpdate >= 0.1 then  -- update 10 times per second
+        ResizeTargetAuras()
+        elapsedSinceUpdate = 0
+    end
 end)
 
 -- Event handler
 f:SetScript("OnEvent", function(_, event, arg1)
     if event == "ADDON_LOADED" and arg1 == "RickeBuffSize" then
         -- Load saved values or defaults
-        buffSize           = RickeBuffSizeDB.buffSize or DEFAULT_BUFF_SIZE
-        debuffSize         = RickeBuffSizeDB.debuffSize or DEFAULT_DEBUFF_SIZE
-        playerDebuffSize   = RickeBuffSizeDB.playerDebuffSize or DEFAULT_PLAYER_DEBUFF_SIZE
+        buffSize         = RickeBuffSizeDB.buffSize or DEFAULT_BUFF_SIZE
+        debuffSize       = RickeBuffSizeDB.debuffSize or DEFAULT_DEBUFF_SIZE
+        playerDebuffSize = RickeBuffSizeDB.playerDebuffSize or DEFAULT_PLAYER_DEBUFF_SIZE
 
         -- Apply immediately
         ResizeTargetAuras()
