@@ -1,0 +1,6 @@
+## Interface: 20504
+## Title: RickeBuffSize
+## Notes: Resize target buffs and debuffs with saved settings
+## SavedVariables: RickeBuffSizeDB
+
+RickeBuffSize.lua
