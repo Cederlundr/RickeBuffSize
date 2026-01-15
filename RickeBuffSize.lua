@@ -1,7 +1,8 @@
 -- Defaults
-local DEFAULT_BUFF_SIZE   = 24
-local DEFAULT_DEBUFF_SIZE = 24
-local DEFAULT_PLAYER_DEBUFF_SIZE = 24
+local DEFAULT_BUFF_SIZE          = 21
+local DEFAULT_DEBUFF_SIZE        = 21
+local DEFAULT_PLAYER_DEBUFF_SIZE = 28
+local DEFAULT_PLAYER_BUFF_SIZE   = 28
 
 -- SavedVariables table
 RickeBuffSizeDB = RickeBuffSizeDB or {}
@@ -9,6 +10,7 @@ RickeBuffSizeDB = RickeBuffSizeDB or {}
 local buffSize
 local debuffSize
 local playerDebuffSize
+local playerBuffSize  -- New variable
 
 -- Frame for events
 local f = CreateFrame("Frame")
@@ -18,13 +20,15 @@ f:RegisterEvent("UNIT_AURA")
 
 -- Resize function
 local function ResizeTargetAuras()
-    -- Buffs (ALL buffs forced above everything)
+    -- Buffs
     for i = 1, MAX_TARGET_BUFFS do
+        local name, _, _, _, _, _, caster = UnitAura("target", i, "HELPFUL")
         local b = _G["TargetFrameBuff"..i]
         if b then
-            -- Size
-            if b:GetWidth() ~= buffSize then
-                b:SetSize(buffSize, buffSize)
+            -- Determine size: player-cast buffs vs others
+            local sizeToUse = (caster == "player") and playerBuffSize or buffSize
+            if b:GetWidth() ~= sizeToUse then
+                b:SetSize(sizeToUse, sizeToUse)
             end
 
             -- Layering (do this once)
@@ -36,7 +40,7 @@ local function ResizeTargetAuras()
         end
     end
 
-    -- Debuffs (unchanged behavior)
+    -- Debuffs
     for i = 1, MAX_TARGET_DEBUFFS do
         local _, _, _, _, _, _, caster = UnitAura("target", i, "HARMFUL")
         local d = _G["TargetFrameDebuff"..i]
@@ -72,6 +76,7 @@ f:SetScript("OnEvent", function(_, event, arg1)
         buffSize         = RickeBuffSizeDB.buffSize or DEFAULT_BUFF_SIZE
         debuffSize       = RickeBuffSizeDB.debuffSize or DEFAULT_DEBUFF_SIZE
         playerDebuffSize = RickeBuffSizeDB.playerDebuffSize or DEFAULT_PLAYER_DEBUFF_SIZE
+        playerBuffSize   = RickeBuffSizeDB.playerBuffSize or DEFAULT_PLAYER_BUFF_SIZE
 
         ResizeTargetAuras()
         return
@@ -92,7 +97,21 @@ SlashCmdList.BUFFSIZE = function(msg)
     buffSize = n
     RickeBuffSizeDB.buffSize = n
     ResizeTargetAuras()
-    print("|cff55ff55Target buff size set to|r", n)
+    print("|cff55ff55Target buffs (all) size set to|r", n)
+end
+
+-- Player-only buff size command
+SLASH_BUFFSIZEPLAYER1 = "/buffsizeplayer"
+SlashCmdList.BUFFSIZEPLAYER = function(msg)
+    local n = tonumber(msg)
+    if not n or n < 10 or n > 60 then
+        print("|cffff5555Usage: /buffsizeplayer <10-60>|r")
+        return
+    end
+    playerBuffSize = n
+    RickeBuffSizeDB.playerBuffSize = n
+    ResizeTargetAuras()
+    print("|cff55ff55Target buffs cast by you (player) size set to|r", n)
 end
 
 -- Debuff size command (non-player debuffs)
